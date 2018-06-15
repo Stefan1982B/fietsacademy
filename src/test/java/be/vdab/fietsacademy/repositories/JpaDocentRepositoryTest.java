@@ -2,7 +2,13 @@ package be.vdab.fietsacademy.repositories;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 
+import java.math.BigDecimal;
+
+import javax.persistence.EntityManager;
+
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +21,7 @@ import org.springframework.test.context.junit4.AbstractTransactionalJUnit4Spring
 import org.springframework.test.context.junit4.SpringRunner;
 
 import be.vdab.fietsacademy.entities.Docent;
+import be.vdab.fietsacademy.enums.Geslacht;
 
 @RunWith(SpringRunner.class)
 @DataJpaTest
@@ -23,8 +30,20 @@ import be.vdab.fietsacademy.entities.Docent;
 @Import(JpaDocentRepository.class)
 public class JpaDocentRepositoryTest extends AbstractTransactionalJUnit4SpringContextTests{
 	
+	private static final String DOCENTEN = "docenten";
+	
 	@Autowired
 	private JpaDocentRepository repository;
+	
+	@Autowired
+	private EntityManager manager;
+	
+	private Docent docent;
+	
+	@Before
+	public void before() {
+		docent = new Docent("test", "test", BigDecimal.TEN, "test@fietsacademy.be", Geslacht.MAN);
+	}
 	
 	private long idVanTestMan() {
 		return super.jdbcTemplate.queryForObject("select id from docenten where voornaam = 'TestM'",  Long.class);
@@ -51,5 +70,23 @@ public class JpaDocentRepositoryTest extends AbstractTransactionalJUnit4SpringCo
 		assertEquals("testV", docent.getVoornaam());
 	}
 
-
+	@Test
+	public void create() {
+		int aantalDocenten = super.countRowsInTable(DOCENTEN);
+		repository.create(docent);
+		assertEquals(aantalDocenten +1, super.countRowsInTable("docenten"));
+		assertNotEquals(0, docent.getId());
+		assertEquals(1, super.countRowsInTableWhere(DOCENTEN, "id =" + docent.getId()));
+	}
+	
+	@Test
+	public void delete() {
+		long id = idVanTestMan();
+		int aantalDocenten = super.countRowsInTable(DOCENTEN);
+		repository.delete(id);
+		manager.flush();
+		assertEquals(aantalDocenten - 1, super.countRowsInTable(DOCENTEN));
+		assertEquals(0, super.countRowsInTableWhere(DOCENTEN, "id=" + id));
+		
+	}
 }
